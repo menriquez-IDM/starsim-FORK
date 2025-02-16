@@ -132,39 +132,70 @@ class BaseArr(np.lib.mixins.NDArrayOperatorsMixin):
 
 
 class Arr(BaseArr):
+
     """
-    Store a state of the agents (e.g. age, infection status, etc.) as an array.
+    Manages agent states (e.g., age, infection status) within a simulation using array structures.
 
-    In practice, ``Arr`` objects can be used interchangeably with NumPy arrays.
-    They have two main data interfaces: ``Arr.raw`` contains the "raw", underlying
-    NumPy array of the data. ``Arr.values`` contains the "active" values, which
-    usually corresponds to agents who are alive.
+    The `Arr` class provides efficient storage and manipulation of agent-related data, integrating seamlessly with NumPy arrays. It offers two primary interfaces:
 
-    By default, operations are performed on active agents only (specified by ``Arr.auids``,
-    which is a pointer to ``sim.people.auids``). For example, ``sim.people.age.mean()``
-    will only use the ages of active agents. Thus, ``sim.people.age.mean()``
-    is equal to ``sim.people.age.values.mean()``, not ``sim.people.age.raw.mean()``.
+    Attributes
+    ----------
+    raw : numpy.ndarray
+        The complete dataset encompassing all agents in the simulation.
+    values : numpy.ndarray
+        A filtered dataset focusing solely on active agents, typically those currently alive.
 
-    If indexing by an int or slice, ``Arr.values`` is used. If indexing by an
-    ``ss.uids`` object, ``Arr.raw`` is used. ``Arr`` objects can't be directly
-    indexed by a list or array of ints, as this would be ambiguous about whether
-    ``values`` or ``raw`` is intended. For example, if there are 1000 people in a
-    simulation and 100 of them have died, ``sim.people.age[999]`` will return
-    an ``IndexError`` (since ``sim.people.age[899]`` is the last active agent),
-    whereas ``sim.people.age[ss.uids(999)]`` is valid.
+    Indexing Behavior
+    -----------------
+    - `Arr[i]` or `Arr[start:stop]`: Accesses `values`, targeting active agents.
+    - `Arr[ss.uids]`: Accesses `raw`, referencing all agents.
 
-    Args:
-        name (str): The name for the state (also used as the dictionary key, so should not have spaces etc.)
-        dtype (class): The dtype to use for this instance (if None, infer from value)
-        default (any): Specify default value for new agents. This can be
-        - A scalar with the same dtype (or castable to the same dtype) as the State
-        - A callable, with a single argument for the number of values to produce
-        - A ``ss.Dist`` instance
-        nan (any): the value to use to represent NaN (not a number); also used as the default value if not supplied
-        label (str): The human-readable name for the state
-        skip_init (bool): Whether to skip initialization with the People object (used for uid and slot states)
-        people (ss.People): Optionally specify an initialized People object, used to construct temporary Arr instances
+    Note: Direct indexing with lists or arrays of integers is not supported to prevent ambiguity between `values` and `raw`.
+
+    Constructor Parameters
+    ----------------------
+    name : str
+        Identifier for the state; serves as the dictionary key and should avoid spaces.
+    dtype : type, optional
+        Data type for the array; inferred if not specified.
+    default : scalar, callable, or ss.Dist, optional
+        Default value for new agents. Can be:
+        - A scalar matching or convertible to `dtype`.
+        - A callable that generates values based on the number of agents.
+        - An `ss.Dist` instance representing a statistical distribution.
+    nan : any, optional
+        Value representing 'Not a Number' (NaN); also used as the default if unspecified.
+    label : str, optional
+        Human-readable name for the state.
+    skip_init : bool, optional
+        If `True`, skips initialization with the `People` object; useful for UID and slot states.
+    people : ss.People, optional
+        An existing `People` object to assist in constructing temporary `Arr` instances.
+
+    Example Usage
+    -------------
+    ```python
+    # Initializing an Arr instance for agent ages
+    age_arr = Arr(name='age', dtype=float, default=0.0, nan=float('nan'), label='Agent Age')
+
+    # Accessing the mean age of active agents
+    mean_age = age_arr.values.mean()
+
+    # Setting the age of a specific agent using their unique identifier
+    uid = ss.uids(5)
+    age_arr.raw[uid] = 30.0
+    ```
+
+    In this example:
+    - An `Arr` instance named 'age' is created to track the ages of agents.
+    - The mean age of active agents is calculated using `values.mean()`.
+    - The age of a specific agent, identified by a unique identifier (`uid`), is set directly in the `raw` array.
+
+    By default, operations on `Arr` instances target active agents, ensuring that analyses and manipulations are pertinent to the current state of the simulation.
+
+    For more detailed information on docstring conventions and best practices, refer to PEP 257: https://peps.python.org/pep-0257/
     """
+
     def __init__(self, name=None, dtype=None, default=None, nan=None, label=None, skip_init=False, people=None):
         # Set attributes
         self.name = name
